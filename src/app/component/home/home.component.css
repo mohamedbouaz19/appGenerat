@@ -1,0 +1,25 @@
+.card-duplicate-container {
+  display: inline-block;
+  margin: 10px;
+  /* Vous pouvez personnaliser plus de styles si nécessaire */
+}
+
+.example-button-row{
+
+  border-radius: 50px;
+}
+.col-md-9 {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;  
+  height: 90vh;
+  padding: 10px;
+  overflow: auto;
+
+}
+
+
+
+
+
