@@ -184,9 +184,12 @@ export class HomeComponent implements AfterViewInit {
 
   handleDoubleClick(event: any): void {
     const clickedShape = event.target;
+  
+    // Vérifie si l'élément cliqué appartient à un groupe (représente une classe)
     if (clickedShape.parent instanceof Konva.Group) {
       const group = clickedShape.parent;
-
+  
+      // Ouvre le dialogue avec les données actuelles de la classe
       const dialogRef = this.dialog.open(DialogComponent, {
         width: '1000px',
         height: '600px',
@@ -194,20 +197,26 @@ export class HomeComponent implements AfterViewInit {
           className: group.findOne((node: Konva.Node) => node instanceof Konva.Text)?.text() || '',
         },
       });
-
+  
       dialogRef.afterClosed().subscribe((result) => {
         if (result) {
+          // Mise à jour du nom de la classe
           const titleNode = group.findOne((node: Konva.Node) => node instanceof Konva.Text) as Konva.Text;
           if (titleNode) {
             titleNode.text(result.className);
-            titleNode.fontStyle('bold');  // Mise en gras du nom de la classe
+            titleNode.fontStyle('bold'); // Mise en gras du nom de la classe
           }
-
-          const existingAttributes = group.getChildren().filter((node: Konva.Node) => node instanceof Konva.Text && node !== titleNode);
+  
+          // Suppression des attributs existants
+          const existingAttributes = group.getChildren().filter(
+            (node: Konva.Node) => node instanceof Konva.Text && node !== titleNode
+          );
           existingAttributes.forEach((attr: Konva.Node) => attr.destroy());
-
-          let yOffset = 40;
+  
+          // Ajout des nouveaux attributs, getters et setters
+          let yOffset = 40; // Décalage initial sous le nom de la classe
           result.tableData.forEach((row: any) => {
+            // Ajout de l'attribut
             const attributeText = new Konva.Text({
               text: `${row.logicalName || '...'}: ${row.type || '...'}`,
               fontSize: 14,
@@ -216,19 +225,51 @@ export class HomeComponent implements AfterViewInit {
               width: 200,
               align: 'left',
             });
-
+  
             group.add(attributeText);
-            yOffset += attributeText.height() + 5;
+            yOffset += attributeText.height() + 5; // Ajustement pour chaque ligne
+  
+            // Ajout du getter
+            if (row.getter) {
+              const getterText = new Konva.Text({
+                text: `get${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(): ${row.type}`,
+                fontSize: 14,
+                padding: 5,
+                y: yOffset,
+                width: 200,
+                align: 'left',
+              });
+  
+              group.add(getterText);
+              yOffset += getterText.height() + 5;
+            }
+  
+            // Ajout du setter
+            if (row.setter) {
+              const setterText = new Konva.Text({
+                text: `set${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(${row.logicalName}: ${row.type}): void`,
+                fontSize: 14,
+                padding: 5,
+                y: yOffset,
+                width: 200,
+                align: 'left',
+              });
+  
+              group.add(setterText);
+              yOffset += setterText.height() + 5;
+            }
           });
-
+  
+          // Ajustement de la hauteur du rectangle de fond
           const rect = group.findOne((node: Konva.Node) => node instanceof Konva.Rect) as Konva.Rect;
           if (rect) {
             rect.height(yOffset + 10);
           }
-
+  
+          // Redessine le calque
           this.layer.draw();
         }
       });
     }
   }
-}
+} 

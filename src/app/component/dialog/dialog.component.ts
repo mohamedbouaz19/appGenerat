@@ -12,10 +12,12 @@ import { AttributeDialogComponent } from '../attribute-dialog/attribute-dialog.c
 
 interface TableRow {
   id: boolean;
-  conceptualName: string|null;
-  logicalName: string|null;
-  type: string|null;
+  logicalName: string | null;
+  type: string | null;
+  getter: boolean;
+  setter: boolean;
 }
+
 @Component({
   selector: 'app-dialog',
   standalone: true,
@@ -29,59 +31,67 @@ interface TableRow {
     CommonModule,
     FormsModule,
     MatTableModule
-],
+  ],
   templateUrl: './dialog.component.html',
   styleUrls: ['./dialog.component.css'],
 })
 export class DialogComponent {
   className: string = '';
   tableData = new MatTableDataSource<TableRow>([]);
-  displayedColumns: string[] = ['id', 'conceptualName', 'logicalName', 'type', 'actions'];
+  displayedColumns: string[] = ['logicalName', 'type', 'getter', 'setter', 'actions'];
 
+  // Rendre dialogRef public pour qu'il soit accessible dans le template
   constructor(
-    public dialogRef: MatDialogRef<DialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any,
-    private dialog: MatDialog
+    public dialog: MatDialog,  // Public pour être utilisé dans le template
+    public dialogRef: MatDialogRef<DialogComponent>,  // Public pour être utilisé dans le template
+    @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
   addRow(): void {
     const dialogRef = this.dialog.open(AttributeDialogComponent, {
-      width: '800px',
-      height: '600px',
+      width: '400px'
     });
 
     dialogRef.afterClosed().subscribe((result: TableRow | null) => {
       if (result) {
-        const newRow = { ...result, conceptualName: this.className };
-        this.tableData.data = [...this.tableData.data, newRow];
+        this.tableData.data = [...this.tableData.data, result];
       }
     });
   }
 
   editRow(row: TableRow): void {
     const dialogRef = this.dialog.open(AttributeDialogComponent, {
-      width: '800px',
-      height: '600px',
-      data: { ...row },
+      width: '400px',
+      data: { ...row }
     });
 
     dialogRef.afterClosed().subscribe((result: TableRow | null) => {
       if (result) {
-        const index = this.tableData.data.findIndex((item) => item.logicalName === row.logicalName);
+        const index = this.tableData.data.findIndex((r) => r.logicalName === row.logicalName);
         if (index !== -1) {
-          const updatedData = [...this.tableData.data];
-          updatedData[index] = result;
-          this.tableData.data = updatedData;
+          this.tableData.data[index] = result;
         }
       }
     });
   }
 
   deleteRow(row: TableRow): void {
-    this.tableData.data = this.tableData.data.filter((item) => item.logicalName !== row.logicalName);
+    this.tableData.data = this.tableData.data.filter((r) => r !== row);
+  }
+
+  getMethodSignature(name: string | null, type: string | null): string {
+    if (!name || !type) return '';
+    return `get${name.charAt(0).toUpperCase() + name.slice(1)}(): ${type}`;
+  }
+
+  setMethodSignature(name: string | null, type: string | null): string {
+    if (!name || !type) return '';
+    return `set${name.charAt(0).toUpperCase() + name.slice(1)}(${name}: ${type}): void`;
   }
 
   closeDialogWithData(): void {
+    this.dialog.closeAll();  // Fermeture du dialog
+    // Renvoie des données className et tableData
     this.dialogRef.close({
       className: this.className,
       tableData: this.tableData.data

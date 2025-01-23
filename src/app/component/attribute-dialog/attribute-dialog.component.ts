@@ -13,6 +13,8 @@ interface FormData {
   id: boolean; // Indique si c'est une clé primaire
   logicalName: string | null;
   type: string | null;
+  getter: boolean; // Ajouter le Getter
+  setter: boolean; // Ajouter le Setter
 }
 
 @Component({
@@ -34,19 +36,16 @@ interface FormData {
 })
 export class AttributeDialogComponent {
   formData: FormData = {
-    id: false, // Par défaut, l'attribut n'est pas une clé primaire
+    id: false,
     logicalName: null,
     type: null,
+    getter: false,
+    setter: false,
   };
 
   constructor(public dialogRef: MatDialogRef<AttributeDialogComponent>) {}
 
   onSubmit(): void {
-    const newRow = { ...this.formData };
-    this.dialogRef.close(newRow);
-  }
-
-  onCancel(): void {
-    this.dialogRef.close(null);
+    this.dialogRef.close({ ...this.formData });
   }
 }
