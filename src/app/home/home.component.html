@@ -1,0 +1,11 @@
+<div class="toolbar">
+  <button mat-button (click)="setTool('circle')">Circle</button>
+  <button mat-button (click)="setTool('class')">Class</button>
+  <button mat-button (click)="setTool('line')">Line</button>
+  <button mat-button (click)="setTool('pen')">Pen</button>
+  <button mat-button (click)="undo()">Undo</button>
+  <button mat-button (click)="clear()">Clear</button>
+</div>
+<div class="canvas-container">
+<div #stageContainer></div>
+</div>

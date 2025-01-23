@@ -1,0 +1,37 @@
+<mat-dialog-content class="dialog">
+    <div class="dialog-header">
+      <h3 mat-dialog-title>Attribut</h3>
+    </div>
+    <div class="dialog-body">
+      <!-- Clé primaire -->
+      <mat-checkbox [(ngModel)]="formData.id">Clé primaire</mat-checkbox>
+  
+      <!-- Nom logique -->
+      <div class="form-group">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nom logique</mat-label>
+          <input matInput [(ngModel)]="formData.logicalName" placeholder="Nom logique" />
+        </mat-form-field>
+      </div>
+  
+      <!-- Type -->
+      <fieldset>
+        <legend>Type</legend>
+        <div class="type-section">
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="Variable" /> Variable</label>
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="Fixe" /> Fixe</label>
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="Entier" /> Entier</label>
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="Décimal" /> Décimal</label>
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="Réel" /> Réel</label>
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="Date" /> Date</label>
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="String" /> String</label>
+          <label><input type="radio" name="type" [(ngModel)]="formData.type" value="Booléen" /> Booléen</label>
+        </div>
+      </fieldset>
+    </div>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annuler</button>
+      <button mat-raised-button color="primary" (click)="onSubmit()">OK</button>
+    </mat-dialog-actions>
+  </mat-dialog-content>
+  
