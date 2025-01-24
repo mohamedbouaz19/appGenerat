@@ -7,8 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { DialogComponent } from '../component/dialog/dialog.component';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import Konva from 'konva';
+import { DialogComponent } from '../component/dialog/dialog.component';
 
 @Component({
   selector: 'app-home',
@@ -26,16 +27,15 @@ import Konva from 'konva';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css'],
 })
-
-
 export class HomeComponent implements AfterViewInit {
   @ViewChild('stageContainer', { static: true }) stageContainer!: ElementRef;
   private stage!: Konva.Stage;
   private layer!: Konva.Layer;
   private transformer!: Konva.Transformer;
+  private tool: string = '';
+  private startPoint: Konva.Group | null = null;
   private currentShape: any;
-  private tool: string = 'pen';
-  private startPoint: { x: number; y: number } | null = null;
+  private connections: { from: Konva.Group; to: Konva.Group; line: Konva.Line }[] = [];
 
   constructor(private dialog: MatDialog) {}
 
@@ -55,8 +55,9 @@ export class HomeComponent implements AfterViewInit {
     this.transformer = new Konva.Transformer();
     this.layer.add(this.transformer);
 
-    this.stage.on('click', (e) => this.handleClick(e));
-    this.stage.on('dblclick', (e) => this.handleDoubleClick(e));
+    // Handle events
+    this.stage.on('click', (event) => this.handleStageClick(event));
+    this.stage.on('dblclick', (event) => this.handleDoubleClick(event));
     this.stage.on('mousedown', (e) => this.startDrawing(e));
     this.stage.on('mousemove', (e) => this.draw(e));
     this.stage.on('mouseup', () => this.stopDrawing());
@@ -82,7 +83,7 @@ export class HomeComponent implements AfterViewInit {
 
   startDrawing(event: any): void {
     const pos = this.stage.getPointerPosition();
-    if (!pos || this.tool === 'pen') return;
+    if (!pos) return;
 
     if (this.tool === 'circle') {
       this.currentShape = new Konva.Circle({
@@ -95,43 +96,21 @@ export class HomeComponent implements AfterViewInit {
       });
       this.layer.add(this.currentShape);
     } else if (this.tool === 'class') {
-      const classGroup = new Konva.Group({
-        x: pos.x,
-        y: pos.y,
-        draggable: true,
-      });
-
-      const rect = new Konva.Rect({
-        width: 200,
-        height: 80,
-        fill: 'white',
-        stroke: 'black',
-      });
-
-      const title = new Konva.Text({
-        text: 'ClassName',
-        fontSize: 16,
-        fontStyle: 'bold',
-        padding: 10,
-        width: 200,
-        align: 'center',
-      });
-
-      classGroup.add(rect, title);
-      this.layer.add(classGroup);
+      this.createClass(pos.x, pos.y);
     } else if (this.tool === 'line') {
-      if (!this.startPoint) {
-        this.startPoint = { x: pos.x, y: pos.y };
-      } else {
-        this.currentShape = new Konva.Line({
-          points: [this.startPoint.x, this.startPoint.y, pos.x, pos.y],
-          stroke: 'black',
-          strokeWidth: 2,
-          lineCap: 'round',
-          lineJoin: 'round',
-        });
-        this.layer.add(this.currentShape);
-        this.startPoint = null;
+      const target = event.target;
+      if (target instanceof Konva.Rect && target.parent instanceof Konva.Group) {
+        const clickedClass = target.parent as Konva.Group;
+
+        if (!this.startPoint) {
+          this.startPoint = clickedClass;
+        } else {
+          const endPoint = clickedClass;
+          if (this.startPoint !== endPoint) {
+            this.createConnection(this.startPoint, endPoint);
+          }
+          this.startPoint = null;
+        }
       }
     }
 
@@ -154,7 +133,75 @@ export class HomeComponent implements AfterViewInit {
     this.currentShape = null;
   }
 
-  handleClick(event: any): void {
+  createClass(x: number, y: number): void {
+    const classGroup = new Konva.Group({
+      x,
+      y,
+      draggable: true,
+    });
+
+    const rect = new Konva.Rect({
+      width: 150,
+      height: 100,
+      fill: 'white',
+      stroke: 'black',
+      strokeWidth: 2,
+    });
+
+    const text = new Konva.Text({
+      text: 'ClassName',
+      fontSize: 16,
+      fontStyle: 'bold',
+      width: 150,
+      align: 'center',
+      padding: 10,
+    });
+
+    classGroup.add(rect, text);
+    this.layer.add(classGroup);
+
+    // Listen for drag to update connections
+    classGroup.on('dragmove', () => this.updateConnections(classGroup));
+
+    this.layer.draw();
+  }
+
+  createConnection(from: Konva.Group, to: Konva.Group): void {
+    const fromPos = this.getGroupCenter(from);
+    const toPos = this.getGroupCenter(to);
+
+    const line = new Konva.Line({
+      points: [fromPos.x, fromPos.y, toPos.x, toPos.y],
+      stroke: 'black',
+      strokeWidth: 2,
+    });
+
+    this.layer.add(line);
+    this.connections.push({ from, to, line });
+    this.layer.draw();
+  }
+
+  getGroupCenter(group: Konva.Group): { x: number; y: number } {
+    const rect = group.findOne((node: Konva.Node) => node instanceof Konva.Rect) as Konva.Rect;
+    return {
+      x: group.x() + rect.width() / 2,
+      y: group.y() + rect.height() / 2,
+    };
+  }
+
+  updateConnections(group: Konva.Group): void {
+    this.connections.forEach((connection) => {
+      if (connection.from === group || connection.to === group) {
+        const fromPos = this.getGroupCenter(connection.from);
+        const toPos = this.getGroupCenter(connection.to);
+
+        connection.line.points([fromPos.x, fromPos.y, toPos.x, toPos.y]);
+      }
+    });
+    this.layer.draw();
+  }
+
+  handleStageClick(event: any): void {
     const clickedShape = event.target;
 
     if (this.tool === 'pen') {
@@ -168,6 +215,92 @@ export class HomeComponent implements AfterViewInit {
     this.layer.draw();
   }
 
+  handleDoubleClick(event: any): void {
+    const clickedShape = event.target;
+
+    // Check if the clicked element belongs to a group (class)
+    if (clickedShape.parent instanceof Konva.Group) {
+      const group = clickedShape.parent;
+
+      // Open dialog with class data
+      const dialogRef = this.dialog.open(DialogComponent, {
+        width: '1000px',
+        height: '600px',
+        data: {
+          className: group.findOne((node: Konva.Node) => node instanceof Konva.Text)?.text() || '',
+        },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          // Update class name
+          const titleNode = group.findOne((node: Konva.Node) => node instanceof Konva.Text) as Konva.Text;
+          if (titleNode) {
+            titleNode.text(result.className);
+            titleNode.fontStyle('bold');
+          }
+
+          // Remove existing attributes
+          const existingAttributes = group.getChildren().filter(
+            (node: Konva.Node) => node instanceof Konva.Text && node !== titleNode
+          );
+          existingAttributes.forEach((attr: Konva.Node) => attr.destroy());
+
+          // Add new attributes, getters, and setters
+          let yOffset = 40;
+          result.tableData.forEach((row: any) => {
+            const attributeText = new Konva.Text({
+              text: `${row.logicalName || '...'}: ${row.type || '...'}`,
+              fontSize: 14,
+              padding: 5,
+              y: yOffset,
+              width: 200,
+              align: 'left',
+            });
+
+            group.add(attributeText);
+            yOffset += attributeText.height() + 5;
+
+            if (row.getter) {
+              const getterText = new Konva.Text({
+                text: `get${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(): ${row.type}`,
+                fontSize: 14,
+                padding: 5,
+                y: yOffset,
+                width: 200,
+                align: 'left',
+              });
+
+              group.add(getterText);
+              yOffset += getterText.height() + 5;
+            }
+
+            if (row.setter) {
+              const setterText = new Konva.Text({
+                text: `set${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(${row.logicalName}: ${row.type}): void`,
+                fontSize: 14,
+                padding: 5,
+                y: yOffset,
+                width: 200,
+                align: 'left',
+              });
+
+              group.add(setterText);
+              yOffset += setterText.height() + 5;
+            }
+          });
+
+          const rect = group.findOne((node: Konva.Node) => node instanceof Konva.Rect) as Konva.Rect;
+          if (rect) {
+            rect.height(yOffset + 10);
+          }
+
+          this.layer.draw();
+        }
+      });
+    }
+  }
+
   undo(): void {
     const children = this.layer.getChildren();
     if (children.length > 0) {
@@ -179,97 +312,7 @@ export class HomeComponent implements AfterViewInit {
   clear(): void {
     this.layer.destroyChildren();
     this.layer.add(this.transformer);
+    this.connections = [];
     this.layer.draw();
   }
-
-  handleDoubleClick(event: any): void {
-    const clickedShape = event.target;
-  
-    // Vérifie si l'élément cliqué appartient à un groupe (représente une classe)
-    if (clickedShape.parent instanceof Konva.Group) {
-      const group = clickedShape.parent;
-  
-      // Ouvre le dialogue avec les données actuelles de la classe
-      const dialogRef = this.dialog.open(DialogComponent, {
-        width: '1000px',
-        height: '600px',
-        data: {
-          className: group.findOne((node: Konva.Node) => node instanceof Konva.Text)?.text() || '',
-        },
-      });
-  
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result) {
-          // Mise à jour du nom de la classe
-          const titleNode = group.findOne((node: Konva.Node) => node instanceof Konva.Text) as Konva.Text;
-          if (titleNode) {
-            titleNode.text(result.className);
-            titleNode.fontStyle('bold'); // Mise en gras du nom de la classe
-          }
-  
-          // Suppression des attributs existants
-          const existingAttributes = group.getChildren().filter(
-            (node: Konva.Node) => node instanceof Konva.Text && node !== titleNode
-          );
-          existingAttributes.forEach((attr: Konva.Node) => attr.destroy());
-  
-          // Ajout des nouveaux attributs, getters et setters
-          let yOffset = 40; // Décalage initial sous le nom de la classe
-          result.tableData.forEach((row: any) => {
-            // Ajout de l'attribut
-            const attributeText = new Konva.Text({
-              text: `${row.logicalName || '...'}: ${row.type || '...'}`,
-              fontSize: 14,
-              padding: 5,
-              y: yOffset,
-              width: 200,
-              align: 'left',
-            });
-  
-            group.add(attributeText);
-            yOffset += attributeText.height() + 5; // Ajustement pour chaque ligne
-  
-            // Ajout du getter
-            if (row.getter) {
-              const getterText = new Konva.Text({
-                text: `get${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(): ${row.type}`,
-                fontSize: 14,
-                padding: 5,
-                y: yOffset,
-                width: 200,
-                align: 'left',
-              });
-  
-              group.add(getterText);
-              yOffset += getterText.height() + 5;
-            }
-  
-            // Ajout du setter
-            if (row.setter) {
-              const setterText = new Konva.Text({
-                text: `set${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(${row.logicalName}: ${row.type}): void`,
-                fontSize: 14,
-                padding: 5,
-                y: yOffset,
-                width: 200,
-                align: 'left',
-              });
-  
-              group.add(setterText);
-              yOffset += setterText.height() + 5;
-            }
-          });
-  
-          // Ajustement de la hauteur du rectangle de fond
-          const rect = group.findOne((node: Konva.Node) => node instanceof Konva.Rect) as Konva.Rect;
-          if (rect) {
-            rect.height(yOffset + 10);
-          }
-  
-          // Redessine le calque
-          this.layer.draw();
-        }
-      });
-    }
-  }
-} 
+}
