@@ -1,0 +1,15 @@
+<h1 mat-dialog-title>Cardinalité</h1>
+    <div mat-dialog-content>
+      <p>Sélectionnez la cardinalité :</p>
+      <mat-radio-group [(ngModel)]="data.cardinality">
+        <mat-radio-button value="0,1">0,1</mat-radio-button><br />
+        <mat-radio-button value="1,1">1,1</mat-radio-button><br />
+        <mat-radio-button value="0,n">0,n</mat-radio-button><br />
+        <mat-radio-button value="1,n">1,n</mat-radio-button><br />
+      </mat-radio-group>
+
+    </div>
+    <div mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">Annuler</button>
+      <button mat-button [mat-dialog-close]="data">OK</button>
+    </div>

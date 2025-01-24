@@ -7,9 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import Konva from 'konva';
 import { DialogComponent } from '../component/dialog/dialog.component';
+import { CardinalityDialogComponent } from '../component/cardinality-dialog/cardinality-dialog.component';
 
 @Component({
   selector: 'app-home',
@@ -57,7 +57,6 @@ export class HomeComponent implements AfterViewInit {
 
     // Handle events
     this.stage.on('click', (event) => this.handleStageClick(event));
-    this.stage.on('dblclick', (event) => this.handleDoubleClick(event));
     this.stage.on('mousedown', (e) => this.startDrawing(e));
     this.stage.on('mousemove', (e) => this.draw(e));
     this.stage.on('mouseup', () => this.stopDrawing());
@@ -157,7 +156,34 @@ export class HomeComponent implements AfterViewInit {
       padding: 10,
     });
 
-    classGroup.add(rect, text);
+    const addCardinalityButton = new Konva.Text({
+      text: '+',
+      fontSize: 20,
+      fill: 'blue',
+      x: rect.width() / 2 - 10,
+      y: rect.height() + 5,
+      draggable: false,
+      cursor: 'pointer',
+    });
+
+    addCardinalityButton.on('click', () => {
+      const dialogRef = this.dialog.open(CardinalityDialogComponent, {
+        width: '400px',
+        height: '300px',
+        data: {
+          cardinality: '',
+        },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          addCardinalityButton.text(result.cardinality);
+          this.layer.draw();
+        }
+      });
+    });
+
+    classGroup.add(rect, text, addCardinalityButton);
     this.layer.add(classGroup);
 
     // Listen for drag to update connections
@@ -167,8 +193,8 @@ export class HomeComponent implements AfterViewInit {
   }
 
   createConnection(from: Konva.Group, to: Konva.Group): void {
-    const fromPos = this.getGroupCenter(from);
-    const toPos = this.getGroupCenter(to);
+    const fromPos = this.getSideCenter(from, 'right');
+    const toPos = this.getSideCenter(to, 'left');
 
     const line = new Konva.Line({
       points: [fromPos.x, fromPos.y, toPos.x, toPos.y],
@@ -181,10 +207,11 @@ export class HomeComponent implements AfterViewInit {
     this.layer.draw();
   }
 
-  getGroupCenter(group: Konva.Group): { x: number; y: number } {
+  getSideCenter(group: Konva.Group, side: 'left' | 'right'): { x: number; y: number } {
     const rect = group.findOne((node: Konva.Node) => node instanceof Konva.Rect) as Konva.Rect;
+    const xOffset = side === 'left' ? 0 : rect.width();
     return {
-      x: group.x() + rect.width() / 2,
+      x: group.x() + xOffset,
       y: group.y() + rect.height() / 2,
     };
   }
@@ -192,8 +219,8 @@ export class HomeComponent implements AfterViewInit {
   updateConnections(group: Konva.Group): void {
     this.connections.forEach((connection) => {
       if (connection.from === group || connection.to === group) {
-        const fromPos = this.getGroupCenter(connection.from);
-        const toPos = this.getGroupCenter(connection.to);
+        const fromPos = this.getSideCenter(connection.from, 'right');
+        const toPos = this.getSideCenter(connection.to, 'left');
 
         connection.line.points([fromPos.x, fromPos.y, toPos.x, toPos.y]);
       }
@@ -213,92 +240,6 @@ export class HomeComponent implements AfterViewInit {
     }
 
     this.layer.draw();
-  }
-
-  handleDoubleClick(event: any): void {
-    const clickedShape = event.target;
-
-    // Check if the clicked element belongs to a group (class)
-    if (clickedShape.parent instanceof Konva.Group) {
-      const group = clickedShape.parent;
-
-      // Open dialog with class data
-      const dialogRef = this.dialog.open(DialogComponent, {
-        width: '1000px',
-        height: '600px',
-        data: {
-          className: group.findOne((node: Konva.Node) => node instanceof Konva.Text)?.text() || '',
-        },
-      });
-
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result) {
-          // Update class name
-          const titleNode = group.findOne((node: Konva.Node) => node instanceof Konva.Text) as Konva.Text;
-          if (titleNode) {
-            titleNode.text(result.className);
-            titleNode.fontStyle('bold');
-          }
-
-          // Remove existing attributes
-          const existingAttributes = group.getChildren().filter(
-            (node: Konva.Node) => node instanceof Konva.Text && node !== titleNode
-          );
-          existingAttributes.forEach((attr: Konva.Node) => attr.destroy());
-
-          // Add new attributes, getters, and setters
-          let yOffset = 40;
-          result.tableData.forEach((row: any) => {
-            const attributeText = new Konva.Text({
-              text: `${row.logicalName || '...'}: ${row.type || '...'}`,
-              fontSize: 14,
-              padding: 5,
-              y: yOffset,
-              width: 200,
-              align: 'left',
-            });
-
-            group.add(attributeText);
-            yOffset += attributeText.height() + 5;
-
-            if (row.getter) {
-              const getterText = new Konva.Text({
-                text: `get${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(): ${row.type}`,
-                fontSize: 14,
-                padding: 5,
-                y: yOffset,
-                width: 200,
-                align: 'left',
-              });
-
-              group.add(getterText);
-              yOffset += getterText.height() + 5;
-            }
-
-            if (row.setter) {
-              const setterText = new Konva.Text({
-                text: `set${row.logicalName.charAt(0).toUpperCase() + row.logicalName.slice(1)}(${row.logicalName}: ${row.type}): void`,
-                fontSize: 14,
-                padding: 5,
-                y: yOffset,
-                width: 200,
-                align: 'left',
-              });
-
-              group.add(setterText);
-              yOffset += setterText.height() + 5;
-            }
-          });
-
-          const rect = group.findOne((node: Konva.Node) => node instanceof Konva.Rect) as Konva.Rect;
-          if (rect) {
-            rect.height(yOffset + 10);
-          }
-
-          this.layer.draw();
-        }
-      });
-    }
   }
 
   undo(): void {
