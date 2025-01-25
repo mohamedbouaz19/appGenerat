@@ -82,17 +82,7 @@ export class HomeComponent implements AfterViewInit {
     const pos = this.stage.getPointerPosition();
     if (!pos) return;
 
-    if (this.tool === 'circle') {
-      this.currentShape = new Konva.Circle({
-        x: pos.x,
-        y: pos.y,
-        radius: 30,
-        fill: 'lightblue',
-        stroke: 'black',
-        draggable: true,
-      });
-      this.layer.add(this.currentShape);
-    } else if (this.tool === 'class') {
+    if (this.tool === 'class') {
       this.createClass(pos.x, pos.y);
     } else if (this.tool === 'line') {
       const target = event.target;
