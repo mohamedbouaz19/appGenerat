@@ -42,7 +42,6 @@ export class HomeComponent implements AfterViewInit {
   ngOnInit(): void {
     const containerElement = this.stageContainer.nativeElement;
 
-    // Initialize Konva stage
     this.stage = new Konva.Stage({
       container: containerElement,
       width: window.innerWidth,
@@ -55,7 +54,6 @@ export class HomeComponent implements AfterViewInit {
     this.transformer = new Konva.Transformer();
     this.layer.add(this.transformer);
 
-    // Handle events
     this.stage.on('click', (event) => this.handleStageClick(event));
     this.stage.on('mousedown', (e) => this.startDrawing(e));
     this.stage.on('mousemove', (e) => this.draw(e));
@@ -156,12 +154,13 @@ export class HomeComponent implements AfterViewInit {
       padding: 10,
     });
 
+    const isLeft = x < this.stage.width() / 2; // Vérifie si la classe est à gauche
     const addCardinalityButton = new Konva.Text({
       text: '+',
-      fontSize: 20,
-      fill: 'blue',
-      x: rect.width() / 2 - 10,
-      y: rect.height() + 5,
+      fontSize: 15,
+      fill: 'black',
+      x: isLeft ? rect.width() + 5 : -15, // Positionne à droite ou à gauche
+      y: rect.height() / 2 , // Centré verticalement
       draggable: false,
       cursor: 'pointer',
     });
@@ -186,9 +185,7 @@ export class HomeComponent implements AfterViewInit {
     classGroup.add(rect, text, addCardinalityButton);
     this.layer.add(classGroup);
 
-    // Listen for drag to update connections
     classGroup.on('dragmove', () => this.updateConnections(classGroup));
-
     this.layer.draw();
   }
 

@@ -12,8 +12,6 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
   selector: 'app-cardinality-dialog',
   standalone: true,
   imports: [
-
-    NgIf,
     FormsModule,
     MatRadioModule,
     MatInputModule,
