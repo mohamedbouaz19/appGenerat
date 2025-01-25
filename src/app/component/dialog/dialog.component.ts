@@ -14,8 +14,8 @@ interface TableRow {
   id: boolean;
   logicalName: string | null;
   type: string | null;
-  getter: boolean;
-  setter: boolean;
+  getter: string;
+  setter: string;
 }
 
 @Component({
@@ -40,29 +40,39 @@ export class DialogComponent {
   tableData = new MatTableDataSource<TableRow>([]);
   displayedColumns: string[] = ['logicalName', 'type', 'getter', 'setter', 'actions'];
 
-  // Rendre dialogRef public pour qu'il soit accessible dans le template
   constructor(
-    public dialog: MatDialog,  // Public pour être utilisé dans le template
-    public dialogRef: MatDialogRef<DialogComponent>,  // Public pour être utilisé dans le template
+    public dialog: MatDialog,
+    public dialogRef: MatDialogRef<DialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
-
+  ) {
+    this.className = data.className || '';
+    this.tableData.data = data.tableData || [];
+  }
   addRow(): void {
     const dialogRef = this.dialog.open(AttributeDialogComponent, {
-      width: '400px'
+      width: '', // Augmenter la largeur
+    height: '', // Ajouter une hauteur
     });
 
     dialogRef.afterClosed().subscribe((result: TableRow | null) => {
       if (result) {
-        this.tableData.data = [...this.tableData.data, result];
+        // Format the getter/setter signatures
+        const formattedRow = {
+          ...result,
+          getter: result.getter ? `+ get${result.logicalName}() : ${result.type}` : '',
+          setter: result.setter ? `+ set${result.logicalName}(value: ${result.type})` : '',
+        };
+        this.tableData.data = [...this.tableData.data, formattedRow];
+        this.tableData._updateChangeSubscription(); // Update table data
       }
     });
   }
 
   editRow(row: TableRow): void {
     const dialogRef = this.dialog.open(AttributeDialogComponent, {
-      width: '400px',
-      data: { ...row }
+      width: '', // Augmenter la largeur
+    height: '', // Ajouter une hauteur
+      data: { ...row },
     });
 
     dialogRef.afterClosed().subscribe((result: TableRow | null) => {
@@ -70,6 +80,7 @@ export class DialogComponent {
         const index = this.tableData.data.findIndex((r) => r.logicalName === row.logicalName);
         if (index !== -1) {
           this.tableData.data[index] = result;
+          this.tableData._updateChangeSubscription(); // Update table data
         }
       }
     });
@@ -77,24 +88,13 @@ export class DialogComponent {
 
   deleteRow(row: TableRow): void {
     this.tableData.data = this.tableData.data.filter((r) => r !== row);
-  }
-
-  getMethodSignature(name: string | null, type: string | null): string {
-    if (!name || !type) return '';
-    return `get${name.charAt(0).toUpperCase() + name.slice(1)}(): ${type}`;
-  }
-
-  setMethodSignature(name: string | null, type: string | null): string {
-    if (!name || !type) return '';
-    return `set${name.charAt(0).toUpperCase() + name.slice(1)}(${name}: ${type}): void`;
+    this.tableData._updateChangeSubscription(); // Update table data
   }
 
   closeDialogWithData(): void {
-    this.dialog.closeAll();  // Fermeture du dialog
-    // Renvoie des données className et tableData
     this.dialogRef.close({
       className: this.className,
-      tableData: this.tableData.data
+      tableData: this.tableData.data, // Return table data
     });
   }
 }

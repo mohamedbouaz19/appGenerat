@@ -144,6 +144,51 @@ export class HomeComponent implements AfterViewInit {
       padding: 10,
     });
 
+    const attributesText = new Konva.Text({
+      text: '',
+      fontSize: 14,
+      width: 150,
+      align: 'left',
+      padding: 10,
+      y: 30, // Position sous le nom de la classe
+    });
+
+    // Ajout d'un événement pour double-cliquer sur la classe
+    classGroup.on('dblclick', () => {
+      const dialogRef = this.dialog.open(DialogComponent, {
+        width: '800px',
+        height: '600px',
+        data: {
+          className: text.text(),
+          tableData: this.getTableDataFromAttributes(attributesText.text()), // Pass data for attributes
+        },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          text.text(result.className);
+
+          // Mise à jour des attributs
+          const attributes = result.tableData
+            .map((attr: any) => {
+              let getterSetterString = '';
+              if (attr.getter) {
+                getterSetterString += `+ get${attr.logicalName}() : ${attr.type}\n`;
+              }
+              if (attr.setter) {
+                getterSetterString += `+ set${attr.logicalName}(value: ${attr.type})\n`;
+              }
+
+              return `${attr.logicalName} : ${attr.type}\n${getterSetterString.trim()}`;
+            })
+            .join('\n');
+          attributesText.text(attributes);
+
+          this.layer.draw();
+        }
+      });
+    });
+
     const isLeft = x < this.stage.width() / 2; // Vérifie si la classe est à gauche
     const addCardinalityButton = new Konva.Text({
       text: '+',
@@ -172,7 +217,7 @@ export class HomeComponent implements AfterViewInit {
       });
     });
 
-    classGroup.add(rect, text, addCardinalityButton);
+    classGroup.add(rect, text, attributesText, addCardinalityButton);
     this.layer.add(classGroup);
 
     classGroup.on('dragmove', () => this.updateConnections(classGroup));
@@ -242,5 +287,34 @@ export class HomeComponent implements AfterViewInit {
     this.layer.add(this.transformer);
     this.connections = [];
     this.layer.draw();
+  }
+
+  getTableDataFromAttributes(attributesText: string): any[] {
+    if (!attributesText) return [];
+    
+    return attributesText.split('\n').map((line) => {
+      const [logicalName, type, ...options] = line.split(':').map((s) => s.trim());
+      const attribute = {
+        logicalName,
+        type,
+        getter: options.includes('(getter)'),
+        setter: options.includes('(setter)'),
+      };
+  
+      // Génération des méthodes getter et setter
+      let getterSetterString = '';
+      if (attribute.getter) {
+        getterSetterString += `+ get${logicalName}() : ${type}\n`;
+      }
+      if (attribute.setter) {
+        getterSetterString += `+ set${logicalName}(${logicalName.toLowerCase()} : ${type})\n`;
+      }
+  
+      return {
+        logicalName,
+        type,
+        getterSetterString: getterSetterString.trim(), // Formater pour ajouter le getter/setter sous la forme demandée
+      };
+    });
   }
 }

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common'; // Utilisez CommonModule au lieu de BrowserModule
+import { CommonModule } from '@angular/common'; 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -10,11 +10,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatRadioModule } from '@angular/material/radio';
 
 interface FormData {
-  id: boolean; // Indique si c'est une clé primaire
+  id: boolean; // Indicate if it's a primary key
   logicalName: string | null;
   type: string | null;
-  getter: boolean; // Ajouter le Getter
-  setter: boolean; // Ajouter le Setter
+  getter: boolean; // Getter
+  setter: boolean; // Setter
 }
 
 @Component({
@@ -22,7 +22,7 @@ interface FormData {
   standalone: true,
   imports: [
     MatDialogModule,
-    CommonModule,  // Remplacez BrowserModule par CommonModule
+    CommonModule,  
     FormsModule,
     ReactiveFormsModule,
     MatFormFieldModule,
