@@ -183,7 +183,7 @@ export class HomeComponent implements AfterViewInit {
             })
             .join('\n');
           attributesText.text(attributes);
-
+this.updateRectSize(rect, [text, attributesText]);
           this.layer.draw();
         }
       });
@@ -222,6 +222,14 @@ export class HomeComponent implements AfterViewInit {
 
     classGroup.on('dragmove', () => this.updateConnections(classGroup));
     this.layer.draw();
+  }
+
+updateRectSize(rect: Konva.Rect, textNodes: Konva.Text[]): void {
+    let totalHeight = 0;
+    textNodes.forEach((textNode) => {
+      totalHeight += textNode.height();
+    });
+    rect.height(Math.max(100, totalHeight + 20));
   }
 
   createConnection(from: Konva.Group, to: Konva.Group): void {
